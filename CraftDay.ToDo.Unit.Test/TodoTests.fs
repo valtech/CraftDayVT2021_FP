@@ -1,5 +1,6 @@
 module CraftDay.ToDo.Unit.Test
 
+open System.Collections.Generic
 open CraftDay.ToDo.Common.Dto
 open CraftDay.ToDo.Common.Services
 open CraftDay.ToDo.CSharp
@@ -7,16 +8,26 @@ open CraftDay.ToDo.CSharpRop
 open CraftDay.ToDo.FSharpRop
 open NUnit.Framework
 
-type DummyToDoStore(todos: (int * ToDoItem) list) =
+type DummyToDoStore() =
+  let mutable store: Map<int, ToDoItem> = Map.empty 
   interface IToDoStore with
     override _.GetItem id =
-      failwith "pang"
+      match store.TryFind(id) with
+      | Some t -> t
+      | None -> null
     
     override _.SetItem (id, item) =
-      failwith "pang"
+      store <- store.Add(id, item)
 
     member this.GetAllItems() =
-      failwith "todo"
+      store
+      |> Map.fold (fun acc _k v -> v :: acc) []
+      |> ResizeArray
+  member this.AddAll(todos: (int * ToDoItem) list) =
+    let todo = this :> IToDoStore
+    todos
+    |> List.iter todo.SetItem
+    
 
 [<TestFixture>]
 type TodoTests() =
@@ -26,20 +37,21 @@ type TodoTests() =
     ToDoCSharpRopFactory()
     ToDoFSharpRopFactory()
   ]
-
+  
   [<TestCaseSource("Services")>]
-  //member _.``Can view TODO list`` (serviceFactory: ToDoServiceFactory) =
-  member _.``Can view TODO list``  =
-      // Arrange
-      let todoA = ToDoItem (TaskDescription = "TODO A")
-      let todoB = ToDoItem (TaskDescription = "TODO B")
-      let todoStore = DummyToDoStore([(1, todoA); (2, todoB)])
-      let factory = ToDoCSharpFactory() 
-      let service = factory.WithStore(todoStore).Build()
-      
-      // Act
-      let actual = service.GetToDoItems()
-      
-      // Assert
-      Assert.Pass()
-      //CollectionAssert.Contains([todoA; todoB], actual)
+  member _.``Can view TODO list`` (serviceFactory: ToDoServiceFactory) =
+    // Arrange
+    let todoA = ToDoItem (TaskDescription = "TODO A")
+    let todoB = ToDoItem (TaskDescription = "TODO B")
+    let todoStore = DummyToDoStore()
+    todoStore.AddAll([(1, todoA); (2, todoB)])
+    let factory = serviceFactory//ToDoCSharpFactory() 
+    let service = factory.WithStore(todoStore).Build()
+    
+    // Act
+    let actual = service.GetToDoItems()
+    
+    // Assert
+    Assert.AreEqual(2, actual.Count)
+    Assert.Contains(todoA, actual)
+    Assert.Contains(todoB, actual)

@@ -5,8 +5,8 @@ namespace CraftDay.ToDo.Common.Services
 {
   public interface IToDoStore
   {
-    public ToDoItem GetItem(string id);
+    public ToDoItem GetItem(int id);
     public List<ToDoItem> GetAllItems();
-    public void SetItem(string id, ToDoItem item);
+    public void SetItem(int id, ToDoItem item);
   }
 }
