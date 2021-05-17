@@ -6,7 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="ToDoFSharpRopFactory.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CraftDay.ToDo.Common\CraftDay.ToDo.Common.csproj" />
   </ItemGroup>
 
 </Project>
