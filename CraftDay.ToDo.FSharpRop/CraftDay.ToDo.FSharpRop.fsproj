@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="ToDoFSharpRopService.fs" />
     <Compile Include="ToDoFSharpRopFactory.fs" />
   </ItemGroup>
 
