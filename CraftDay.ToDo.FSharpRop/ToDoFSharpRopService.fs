@@ -6,5 +6,8 @@ open System.Collections
 
 type ToDoFSharpRopService(store: IToDoStore) =
   interface IToDoService with
-    override this.GetToDoItems(): Generic.List<ToDoItem> =
+    override this.GetAllItems(): Generic.List<ToDoItem> =
       store.GetAllItems()
+      
+    override this.GetItem id: ToDoItem =
+      store.GetItem id

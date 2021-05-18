@@ -14,9 +14,14 @@ namespace CraftDay.ToDo.CSharpRop
       _store = store;
     }
 
-    public List<ToDoItem> GetToDoItems()
+    public List<ToDoItem> GetAllItems()
     {
       return _store.GetAllItems();
+    }
+
+    public ToDoItem GetItem(int id)
+    {
+      return _store.GetItem(id);
     }
   }
 }
