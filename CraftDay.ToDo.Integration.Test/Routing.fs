@@ -1,10 +1,12 @@
 namespace CraftDay.ToDo.Integration.Test
 
+open System.Net
+
 type Action = GET | POST | PUT
 type Url = string
 type Param = string
 type Body = string
-type HttpResult = string
+type HttpResult = (HttpStatusCode * Body)
 
 type ParamOrBody =
   | UnParamFunc of (unit -> HttpResult)

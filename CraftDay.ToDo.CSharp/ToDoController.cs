@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using CraftDay.ToDo.Common.Dto;
 using CraftDay.ToDo.CSharp.Errors;
 using Newtonsoft.Json;
@@ -15,7 +16,7 @@ namespace CraftDay.ToDo.CSharp
       _service = service;
     }
     
-    public string GetAllItems()
+    public Tuple<HttpStatusCode, string> GetAllItems()
     {
       try
       {
@@ -26,18 +27,23 @@ namespace CraftDay.ToDo.CSharp
         var envelope = new ToDoGetItemsMessage{items = items};
         
         // Serialize result
-        return JsonConvert.SerializeObject(envelope);
+        return Tuple.Create(HttpStatusCode.OK, JsonConvert.SerializeObject(envelope));
         
       } catch (ValidationException e) {
-        return e.ToString();
-      } catch (DomainException e) {
-        return e.ToString();
+        return Tuple.Create(HttpStatusCode.BadRequest, e.ToString());
+      } catch (DaoException) {
+        return Tuple.Create(
+          HttpStatusCode.InternalServerError, 
+          JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"}));
       } catch (Exception) {
-        return JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"});
+        return 
+          Tuple.Create(
+            HttpStatusCode.InternalServerError, 
+            JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"}));
       }
     }
     
-    public string GetItem(string id)
+    public Tuple<HttpStatusCode, string>  GetItem(string id)
     {
       try
       {
@@ -52,14 +58,19 @@ namespace CraftDay.ToDo.CSharp
         var envelope = new ToDoGetItemsMessage{ items = items };
         
         // Serialize result
-        return JsonConvert.SerializeObject(envelope);
+        return Tuple.Create(HttpStatusCode.OK, JsonConvert.SerializeObject(envelope));
         
       } catch (ValidationException e) {
-        return e.ToString();
-      } catch (DomainException e) {
-        return e.ToString();
+        return Tuple.Create(HttpStatusCode.BadRequest, e.ToString());
+      } catch (DaoException) {
+        return Tuple.Create(
+          HttpStatusCode.InternalServerError, 
+          JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"}));
       } catch (Exception) {
-        return JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"});
+        return 
+          Tuple.Create(
+            HttpStatusCode.InternalServerError, 
+            JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"}));
       }
     }
   }

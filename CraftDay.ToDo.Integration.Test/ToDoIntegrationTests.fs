@@ -1,5 +1,6 @@
 module CraftDay.ToDo.Integration.Test.ToDoTests
 
+open System.Net
 open CraftDay.ToDo.CSharp
 open CraftDay.ToDo.CSharpRop
 open CraftDay.ToDo.Common.Dto
@@ -52,10 +53,11 @@ type TodoIntegrationTests() =
     let route = TodoIntegrationTests.SetupApiRoutes api
     
     // Act
-    let actual = route.call (GET, "/todo/") ""
+    let code, actual = route.call (GET, "/todo/") ""
     let actual = JsonConvert.DeserializeObject<ToDoGetItemsMessage>(actual)
     
     // Assert
+    Assert.AreEqual(HttpStatusCode.OK, code)
     Assert.AreEqual(2, actual.items.Count)
 
   [<TestCaseSource("Apis")>]
@@ -64,9 +66,10 @@ type TodoIntegrationTests() =
     let route = TodoIntegrationTests.SetupApiRoutes api
     
     // Act
-    let actual = route.call (GET, "/todo/{}") "2"
+    let code, actual = route.call (GET, "/todo/{}") "2"
     let actual = JsonConvert.DeserializeObject<ToDoGetItemsMessage>(actual)
     
     // Assert
+    Assert.AreEqual(HttpStatusCode.OK, code)
     Assert.AreEqual(1, actual.items.Count)
     Assert.AreEqual(todoB.TaskDescription, actual.items.Item(0).TaskDescription)

@@ -1,6 +1,7 @@
 namespace CraftDay.ToDo.FSharpRop
 
 open System
+open System.Net
 open CraftDay.ToDo.CSharp.Errors
 open CraftDay.ToDo.Common.Dto
 open CraftDay.ToDo.Common.Services
@@ -8,11 +9,12 @@ open CraftDay.ToDo.FSharpRop.Validators
 open Newtonsoft.Json
 
 module ToDoFSharpRopWorkflow =
-  type HttpResult = string
+  type HttpResult = HttpStatusCode * string
   type UnvalidatedId = string
   type WorkflowError =
     | ValidationError of ValidationException
     | DomainError of DomainException
+    | DaoError of DaoException
   
   type IToDoWorkflow = {
     getAllItems: unit -> HttpResult 
@@ -53,7 +55,7 @@ module ToDoFSharpRopWorkflow =
       |> service.GetItem
       |> Ok
     with
-    | ex -> DomainException(ex.Message) |> WorkflowError.DomainError |> Error
+    | ex -> DaoException(ex.Message) |> WorkflowError.DaoError |> Error
   
   let private doGetItem (service: IToDoService) unvalidatedId: Result<ToDoGetItemsMessage, WorkflowError> =
     unvalidatedId
@@ -65,12 +67,16 @@ module ToDoFSharpRopWorkflow =
   
   let private convertError (err: WorkflowError): HttpResult =
     match err with
-    | ValidationError e -> e.ToString()
-    | DomainError e -> e.ToString()
+    | ValidationError e -> HttpStatusCode.BadRequest, e.ToString()
+    | DomainError e -> HttpStatusCode.BadRequest, e.ToString()
+    | DaoError e ->
+      HttpStatusCode.InternalServerError,
+      {| ``type`` = "InternalError"; error = e.Message |}
+      |> JsonConvert.SerializeObject
   
   let private toHttpResult (res: Result<ToDoGetItemsMessage, WorkflowError>): HttpResult =
     match res with
-    | Ok msg -> msg |> JsonConvert.SerializeObject
+    | Ok msg -> (HttpStatusCode.OK, msg |> JsonConvert.SerializeObject)
     | Error e -> e |> convertError
   
   let setup (service: IToDoService): IToDoWorkflow = {
