@@ -14,15 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="TodoTests.fs" />
+    <Compile Include="Routing.fs" />
+    <Compile Include="ToDoIntegrationTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CraftDay.ToDo.Common\CraftDay.ToDo.Common.csproj" />
     <ProjectReference Include="..\CraftDay.ToDo.CSharpRop\CraftDay.ToDo.CSharpRop.csproj" />
     <ProjectReference Include="..\CraftDay.ToDo.CSharp\CraftDay.ToDo.CSharp.csproj" />
-    <ProjectReference Include="..\CraftDay.ToDo.FSharpRop\CraftDay.ToDo.FSharpRop.fsproj" />
     <ProjectReference Include="..\CraftDay.ToDo.Util.Test\CraftDay.ToDo.Util.Test.fsproj" />
   </ItemGroup>
 
