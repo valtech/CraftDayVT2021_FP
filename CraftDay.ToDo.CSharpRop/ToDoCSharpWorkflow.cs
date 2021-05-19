@@ -42,6 +42,17 @@ namespace CraftDay.ToDo.CSharpRop
         .ToEither()
         .MapLeft(e => (Exception) new DomainException(e.Message));
 
+    private Either<Exception, ToDoItem> SetNameInStore(int id, string name)
+      => new Try<ToDoItem>(() =>
+        {
+          var item = _service.GetItem(id);
+          item.Name = name;
+          _service.SetItem(id, item);
+          return item;
+        })
+        .ToEither()
+        .MapLeft(e => (Exception) new DomainException(e.Message));
+    
     private Either<Exception, List<ToDoItem>> GetAllItemsFromStore()
       => new Try<List<ToDoItem>>(() => _service.GetAllItems())
         .ToEither()
@@ -112,11 +123,50 @@ namespace CraftDay.ToDo.CSharpRop
       return result;
     }
     
+    private
+      Validation<ValidationException, Tuple<int, string>>
+      ValidateSetName(string pathParam, string body)
+    {
+      var id = 
+        NonEmptyString
+          .From(pathParam) // Deserialize
+          .Bind<int>(ConvertToInt)
+          .Match(
+            i => Success<ValidationException, int>(i),
+            e => Fail<ValidationException, int>((ValidationException)e)
+          );
+      var name =
+        new Try<SetName>(() => JsonConvert.DeserializeObject<SetName>(body))
+          .ToEither()
+          .Match(
+            setName => Success<ValidationException, string>(setName.Name),
+            e => Fail<ValidationException, string>((ValidationException)e)
+          );
+
+      var result = 
+        from x in id
+        from y in name
+        select Tuple(x, y);
+      
+      return result;
+    }
+    
     public Tuple<HttpStatusCode, string> SetIsDone(string pathParam, string body)
       => ValidateSetStatus(pathParam, body) // Validate input
         .ToEither() // Convert the error type Validation -> Either
         .MapLeft(e => (Exception) e.Head) // Just pick the first error
         .Bind<ToDoItem>(t => SetItemToDoneInStore(t.Item1, t.Item2)) // Get data from store
+        .Map<ToDoGetItemsMessage>(WrapToDoInEnvelope) // Get results
+        .Map<string>(JsonConvert.SerializeObject) // Serialize
+        .Match(
+          val => Tuple(HttpStatusCode.OK, val), 
+          HandleHttpError);
+    
+    public Tuple<HttpStatusCode, string> SetName(string pathParam, string body)
+      => ValidateSetName(pathParam, body) // Validate input
+        .ToEither() // Convert the error type Validation -> Either
+        .MapLeft(e => (Exception) e.Head) // Just pick the first error
+        .Bind<ToDoItem>(t => SetNameInStore(t.Item1, t.Item2)) // Get data from store
         .Map<ToDoGetItemsMessage>(WrapToDoInEnvelope) // Get results
         .Map<string>(JsonConvert.SerializeObject) // Serialize
         .Match(
