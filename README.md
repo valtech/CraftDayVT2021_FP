@@ -17,7 +17,7 @@ The repository consists of seven different parts divided into two major assignme
   * Shared integration tests for the three application implemetations
 
 ### Some shared objects (to reduce duplication)
-* **CraftDay.ToDo.CSharp**
+* **CraftDay.ToDo.Common**
   * DTOs etc..
 * **CraftDay.ToDo.Util.Test**
   * Shared resources between Unit and Integration tests
