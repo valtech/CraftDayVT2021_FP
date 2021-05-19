@@ -23,5 +23,10 @@ namespace CraftDay.ToDo.CSharpRop
     {
       return _store.GetItem(id);
     }
+    
+    public void SetItem(int id, ToDoItem item)
+    {
+      _store.SetItem(id, item);
+    }
   }
 }

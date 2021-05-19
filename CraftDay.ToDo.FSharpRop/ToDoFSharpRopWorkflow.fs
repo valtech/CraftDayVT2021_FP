@@ -7,8 +7,19 @@ open CraftDay.ToDo.Common.Dto
 open CraftDay.ToDo.Common.Services
 open CraftDay.ToDo.FSharpRop.Validators
 open Newtonsoft.Json
+//open FsToolkit.ErrorHandling
 
 module ToDoFSharpRopWorkflow =
+  
+  let (>>=) m f =
+    Result.bind f m
+  
+  let (|>!) m f =
+    Result.mapError f m
+  
+  let (|>>) m f =
+    Result.map f m
+  
   type HttpResult = HttpStatusCode * string
   type UnvalidatedId = string
   type WorkflowError =
@@ -19,6 +30,7 @@ module ToDoFSharpRopWorkflow =
   type IToDoWorkflow = {
     getAllItems: unit -> HttpResult 
     getItem: string -> HttpResult 
+    setIsDone: string -> string -> HttpResult 
   }
   
   type Services = {
@@ -38,7 +50,7 @@ module ToDoFSharpRopWorkflow =
   let private doGetAllItems (service: IToDoService) _ =
     (getItems service) // Get values from store
     |> Result.mapError DomainError // Convert error to same as flow
-    |> Result.bind (fun items -> ToDoGetItemsMessage(items = items) |> Ok) // Map to envelope type
+    |> Result.map (fun items -> ToDoGetItemsMessage(items = items)) // Map to envelope type
   
   let private convertToId (str: NonEmptyString): Result<int, WorkflowError> =
     match Int32.TryParse (NonEmptyString.value str) with
@@ -63,8 +75,40 @@ module ToDoFSharpRopWorkflow =
     |> Result.mapError WorkflowError.ValidationError
     |> Result.bind convertToId
     |> Result.bind (getItemFromService service)
-    |> Result.bind (wrapInEnvelope >> Ok)
+    |> Result.map wrapInEnvelope
   
+  let private validateBody body =
+    try
+      JsonConvert.DeserializeObject<SetIsDone>(body)
+      |> Ok
+    with
+    | ex ->
+      ValidationException("Could not deserialize body")
+      |> WorkflowError.ValidationError
+      |> Error
+  
+  let private doSetIsDone
+    (service: IToDoService)
+    unvalidatedId
+    unvalidatedBody
+    : Result<ToDoGetItemsMessage, WorkflowError> =
+    unvalidatedId
+    |> NonEmptyString.create
+    |> Result.mapError WorkflowError.ValidationError
+    |> Result.bind convertToId
+    |> Result.bind (fun id ->
+        unvalidatedBody
+        |> validateBody
+        |> Result.map (fun b -> (id, b))
+      )
+    |> Result.map (fun (id, body) ->
+        let mutable item = service.GetItem(id)
+        item.IsDone <- body.IsDone
+        service.SetItem(id, item)
+        item 
+      )
+    |> Result.map wrapInEnvelope
+      
   let private convertError (err: WorkflowError): HttpResult =
     match err with
     | ValidationError e -> HttpStatusCode.BadRequest, e.ToString()
@@ -82,5 +126,6 @@ module ToDoFSharpRopWorkflow =
   let setup (service: IToDoService): IToDoWorkflow = {
     getAllItems = (doGetAllItems service >> toHttpResult)
     getItem = (doGetItem service >> toHttpResult)
+    setIsDone = fun id setItem -> (doSetIsDone service id setItem |> toHttpResult)
   }
   

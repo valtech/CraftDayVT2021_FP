@@ -11,3 +11,6 @@ type ToDoFSharpRopService(store: IToDoStore) =
       
     override this.GetItem id: ToDoItem =
       store.GetItem id
+      
+    override this.SetItem(id, item): unit =
+      store.SetItem(id, item)

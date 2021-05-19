@@ -13,6 +13,7 @@ open Newtonsoft.Json
 type ToDoApi = {
   getAllItems: unit -> HttpResult
   getItem: Param -> HttpResult
+  setIsDone: Param -> Body -> HttpResult
 } 
 
 let todoA = ToDoItem (TaskDescription = "TODO A")
@@ -30,14 +31,17 @@ type TodoIntegrationTests() =
     ({
       getAllItems = controller.GetAllItems
       getItem = controller.GetItem
+      setIsDone = fun param body -> controller.SetIsDone(param, body)
     }: ToDoApi) // C# API
     ({
       getAllItems = csharpWorkflow.GetAllItems
       getItem = csharpWorkflow.GetItem
+      setIsDone = fun param body -> csharpWorkflow.SetIsDone(param, body)
     }: ToDoApi) // C# ROP API
     ({
       getAllItems = fsharpWorkflow.getAllItems
       getItem = fsharpWorkflow.getItem
+      setIsDone = fsharpWorkflow.setIsDone
     }: ToDoApi) // F# ROP API
   ]
   
@@ -45,6 +49,7 @@ type TodoIntegrationTests() =
     Map.empty
         .Add((GET, "/todo/"), api.getAllItems |> ParamOrBody.UnParamFunc)
         .Add((GET, "/todo/{}"), api.getItem |> ParamOrBody.ParamFunc)
+        .Add((GET, "/todo/{} {}"), api.setIsDone |> ParamOrBody.ParamAndBodyFunc)
     |> Router
     
   [<TestCaseSource("Apis")>]
@@ -53,7 +58,7 @@ type TodoIntegrationTests() =
     let route = TodoIntegrationTests.SetupApiRoutes api
     
     // Act
-    let code, actual = route.call (GET, "/todo/") ""
+    let code, actual = route.call (GET, "/todo/") "" ""
     let actual = JsonConvert.DeserializeObject<ToDoGetItemsMessage>(actual)
     
     // Assert
@@ -66,10 +71,26 @@ type TodoIntegrationTests() =
     let route = TodoIntegrationTests.SetupApiRoutes api
     
     // Act
-    let code, actual = route.call (GET, "/todo/{}") "2"
+    let code, actual = route.call (GET, "/todo/{}") "2" ""
     let actual = JsonConvert.DeserializeObject<ToDoGetItemsMessage>(actual)
     
     // Assert
     Assert.AreEqual(HttpStatusCode.OK, code)
     Assert.AreEqual(1, actual.items.Count)
     Assert.AreEqual(todoB.TaskDescription, actual.items.Item(0).TaskDescription)
+
+  [<TestCaseSource("Apis")>]
+  member _.``PUT /todo/2 -> set status to done and return TODO with id 2`` (api: ToDoApi) =
+    // Arrange   
+    let route = TodoIntegrationTests.SetupApiRoutes api
+    let body = {| isDone = true |} |> JsonConvert.SerializeObject
+    
+    // Act
+    let code, actual = route.call (GET, "/todo/{} {}") "2" body 
+    let actual = JsonConvert.DeserializeObject<ToDoGetItemsMessage>(actual)
+    
+    // Assert
+    Assert.AreEqual(HttpStatusCode.OK, code)
+    Assert.AreEqual(1, actual.items.Count)
+    Assert.AreEqual(todoB.TaskDescription, actual.items.Item(0).TaskDescription)
+    Assert.AreEqual(true, actual.items.Item(0).IsDone)

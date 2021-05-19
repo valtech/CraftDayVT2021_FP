@@ -7,5 +7,6 @@ namespace CraftDay.ToDo.Common.Services
     {
         public List<ToDoItem> GetAllItems();
         public ToDoItem GetItem(int id);
+        public void SetItem(int id, ToDoItem item);
     }
 }

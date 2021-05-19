@@ -38,5 +38,20 @@ namespace CraftDay.ToDo.CSharp
         throw new DaoException($"Error reading item {id} from store");
       }
     }
+    
+    public void SetItem(int id, ToDoItem item)
+    {
+      try {
+        _store.SetItem(id, item);
+      } catch (KeyNotFoundException e)
+      {
+        Console.Out.WriteLine(e.Message);
+        throw new DomainException($"Could not find item {id} in store");
+      } catch (Exception e)
+      {
+        Console.Out.WriteLine(e.Message);
+        throw new DaoException($"Error reading item {id} from store");
+      }
+    }
   }
 }

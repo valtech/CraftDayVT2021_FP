@@ -7,6 +7,8 @@ using CraftDay.ToDo.CSharp.Errors;
 using CraftDay.ToDo.CSharpRop.Validators;
 using LanguageExt;
 using Newtonsoft.Json;
+using LanguageExt.ClassInstances;
+using static LanguageExt.Prelude;
 
 namespace CraftDay.ToDo.CSharpRop
 {
@@ -28,6 +30,17 @@ namespace CraftDay.ToDo.CSharpRop
       => new Try<ToDoItem>(() => _service.GetItem(id))
         .ToEither()
         .MapLeft(e => (Exception) new DomainException(e.Message));
+    
+    private Either<Exception, ToDoItem> SetItemToDoneInStore(int id, bool isDone)
+      => new Try<ToDoItem>(() =>
+        {
+          var item = _service.GetItem(id);
+          item.IsDone = isDone;
+          _service.SetItem(id, item);
+          return item;
+        })
+        .ToEither()
+        .MapLeft(e => (Exception) new DomainException(e.Message));
 
     private Either<Exception, List<ToDoItem>> GetAllItemsFromStore()
       => new Try<List<ToDoItem>>(() => _service.GetAllItems())
@@ -42,12 +55,12 @@ namespace CraftDay.ToDo.CSharpRop
 
     private static Tuple<HttpStatusCode, string> HandleHttpError(Exception err)
       => err switch {
-        ValidationException e => Tuple.Create(HttpStatusCode.BadRequest, e.ToString()),
-        DomainException e => Tuple.Create(HttpStatusCode.BadRequest, e.ToString()),
-        DaoException => Tuple.Create(
+        ValidationException e => Tuple(HttpStatusCode.BadRequest, e.ToString()),
+        DomainException e => Tuple(HttpStatusCode.BadRequest, e.ToString()),
+        DaoException => Tuple(
           HttpStatusCode.InternalServerError,
           JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"})),
-        _ => Tuple.Create(
+        _ => Tuple(
           HttpStatusCode.InternalServerError,
           JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"}))
       };
@@ -57,7 +70,7 @@ namespace CraftDay.ToDo.CSharpRop
         .Map<ToDoGetItemsMessage>(WrapToDoListInEnvelope) // Get results
         .Map<string>(JsonConvert.SerializeObject) // Serialize
         .Match(
-          val => Tuple.Create(HttpStatusCode.OK, val), 
+          val => Tuple(HttpStatusCode.OK, val), 
           HandleHttpError);
 
     public Tuple<HttpStatusCode, string>  GetItem(string param)
@@ -68,7 +81,46 @@ namespace CraftDay.ToDo.CSharpRop
         .Map<ToDoGetItemsMessage>(WrapToDoInEnvelope) // Get results
         .Map<string>(JsonConvert.SerializeObject) // Serialize
         .Match(
-          val => Tuple.Create(HttpStatusCode.OK, val), 
+          val => Tuple(HttpStatusCode.OK, val), 
+          HandleHttpError);
+
+    private
+      Validation<ValidationException, Tuple<int, bool>>
+      ValidateSetStatus(string pathParam, string body)
+    {
+      var id = 
+        NonEmptyString
+        .From(pathParam) // Deserialize
+        .Bind<int>(ConvertToInt)
+        .Match(
+          i => Success<ValidationException, int>(i),
+          e => Fail<ValidationException, int>((ValidationException)e)
+          );
+      var status =
+        new Try<SetIsDone>(() => JsonConvert.DeserializeObject<SetIsDone>(body))
+          .ToEither()
+          .Match(
+            isDone => Success<ValidationException, bool>(isDone.IsDone),
+            e => Fail<ValidationException, bool>((ValidationException)e)
+          );
+
+      var result = 
+        from x in id
+        from y in status
+        select Tuple(x, y);
+      
+      return result;
+    }
+    
+    public Tuple<HttpStatusCode, string> SetIsDone(string pathParam, string body)
+      => ValidateSetStatus(pathParam, body) // Validate input
+        .ToEither() // Convert the error type Validation -> Either
+        .MapLeft(e => (Exception) e.Head) // Just pick the first error
+        .Bind<ToDoItem>(t => SetItemToDoneInStore(t.Item1, t.Item2)) // Get data from store
+        .Map<ToDoGetItemsMessage>(WrapToDoInEnvelope) // Get results
+        .Map<string>(JsonConvert.SerializeObject) // Serialize
+        .Match(
+          val => Tuple(HttpStatusCode.OK, val), 
           HandleHttpError);
   }
 }
