@@ -3,6 +3,7 @@ module CraftDay.ToDo.Integration.Test.ToDoTests
 open CraftDay.ToDo.CSharp
 open CraftDay.ToDo.CSharpRop
 open CraftDay.ToDo.Common.Dto
+open CraftDay.ToDo.FSharpRop
 open CraftDay.ToDo.Util.Test.Utils
 open CraftDay.ToDo.Integration.Test
 open NUnit.Framework
@@ -19,7 +20,8 @@ let store = DummyToDoStore()
 do store.AddAll([(1, todoA); (2, todoB)])
 let service = ToDoCSharpService(store)
 let controller = ToDoController(service)
-let cSharpWorkflow = ToDoCSharpWorkflow(store)
+let csharpWorkflow = ToDoCSharpWorkflow(store)
+let fsharpWorkflow = ToDoFSharpRopWorkflow.setup (ToDoFSharpRopService store)
 
 [<TestFixture>]
 type TodoIntegrationTests() =
@@ -29,9 +31,13 @@ type TodoIntegrationTests() =
       getItem = controller.GetItem
     }: ToDoApi) // C# API
     ({
-      getAllItems = cSharpWorkflow.GetAllItems
-      getItem = cSharpWorkflow.GetItem
+      getAllItems = csharpWorkflow.GetAllItems
+      getItem = csharpWorkflow.GetItem
     }: ToDoApi) // C# ROP API
+    ({
+      getAllItems = fsharpWorkflow.getAllItems
+      getItem = fsharpWorkflow.getItem
+    }: ToDoApi) // F# ROP API
   ]
   
   static member SetupApiRoutes api =

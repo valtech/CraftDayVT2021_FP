@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CraftDay.ToDo.CSharpRop\CraftDay.ToDo.CSharpRop.csproj" />
     <ProjectReference Include="..\CraftDay.ToDo.CSharp\CraftDay.ToDo.CSharp.csproj" />
+    <ProjectReference Include="..\CraftDay.ToDo.FSharpRop\CraftDay.ToDo.FSharpRop.fsproj" />
     <ProjectReference Include="..\CraftDay.ToDo.Util.Test\CraftDay.ToDo.Util.Test.fsproj" />
   </ItemGroup>
 

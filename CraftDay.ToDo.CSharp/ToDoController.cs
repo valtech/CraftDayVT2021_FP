@@ -32,7 +32,7 @@ namespace CraftDay.ToDo.CSharp
         return e.ToString();
       } catch (DomainException e) {
         return e.ToString();
-      } catch (Exception e) {
+      } catch (Exception) {
         return JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"});
       }
     }
@@ -58,7 +58,7 @@ namespace CraftDay.ToDo.CSharp
         return e.ToString();
       } catch (DomainException e) {
         return e.ToString();
-      } catch (Exception e) {
+      } catch (Exception) {
         return JsonConvert.SerializeObject(new {type = "InternalError", error = "Internal error"});
       }
     }

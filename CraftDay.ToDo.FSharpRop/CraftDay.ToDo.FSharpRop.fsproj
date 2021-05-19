@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Validators\NonEmptyString.fs" />
     <Compile Include="ToDoFSharpRopService.fs" />
     <Compile Include="ToDoFSharpRopFactory.fs" />
+    <Compile Include="ToDoFSharpRopWorkflow.fs" />
   </ItemGroup>
 
   <ItemGroup>
