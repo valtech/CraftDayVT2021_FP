@@ -49,12 +49,18 @@ type TodoIntegrationTests() =
     }: ToDoApi) // F# ROP API
   ]
   
-  static member OnlyCSharpRop: ToDoApi list = [
+  static member CSharpAndFSharpRop: ToDoApi list = [
     ({
       getAllItems = csharpWorkflow.GetAllItems
       getItem = csharpWorkflow.GetItem
       setIsDone = fun param body -> csharpWorkflow.SetIsDone(param, body)
       setName = fun param body -> csharpWorkflow.SetName(param, body)
+    }: ToDoApi) // C# ROP API
+    ({
+      getAllItems = fsharpWorkflow.getAllItems
+      getItem = fsharpWorkflow.getItem
+      setIsDone = fsharpWorkflow.setIsDone
+      setName = fsharpWorkflow.setName
     }: ToDoApi) // C# ROP API
   ]
   
@@ -109,7 +115,7 @@ type TodoIntegrationTests() =
     Assert.AreEqual(todoB.TaskDescription, actual.items.Item(0).TaskDescription)
     Assert.AreEqual(true, actual.items.Item(0).IsDone)
     
-  [<TestCaseSource("OnlyCSharpRop")>]
+  [<TestCaseSource("CSharpAndFSharpRop")>]
   member _.``PUT /todo/2 name -> assign name to TODO and return TODO with id 2`` (api: ToDoApi) =
     // Arrange   
     let route = TodoIntegrationTests.SetupApiRoutes api

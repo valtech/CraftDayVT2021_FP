@@ -31,6 +31,7 @@ module ToDoFSharpRopWorkflow =
     getAllItems: unit -> HttpResult 
     getItem: string -> HttpResult 
     setIsDone: string -> string -> HttpResult 
+    setName: string -> string -> HttpResult 
   }
   
   type Services = {
@@ -77,16 +78,16 @@ module ToDoFSharpRopWorkflow =
     |> Result.bind (getItemFromService service)
     |> Result.map wrapInEnvelope
   
-  let private validateBody body =
+  let private validateBody<'T> body =
     try
-      JsonConvert.DeserializeObject<SetIsDone>(body)
+      JsonConvert.DeserializeObject<'T>(body)
       |> Ok
     with
     | ex ->
       ValidationException("Could not deserialize body")
       |> WorkflowError.ValidationError
       |> Error
-  
+      
   let private doSetIsDone
     (service: IToDoService)
     unvalidatedId
@@ -98,12 +99,34 @@ module ToDoFSharpRopWorkflow =
     |> Result.bind convertToId
     |> Result.bind (fun id ->
         unvalidatedBody
-        |> validateBody
+        |> validateBody<SetIsDone>
         |> Result.map (fun b -> (id, b))
       )
     |> Result.map (fun (id, body) ->
         let mutable item = service.GetItem(id)
         item.IsDone <- body.IsDone
+        service.SetItem(id, item)
+        item 
+      )
+    |> Result.map wrapInEnvelope
+    
+  let private doSetName
+    (service: IToDoService)
+    unvalidatedId
+    unvalidatedBody
+    : Result<ToDoGetItemsMessage, WorkflowError> =
+    unvalidatedId
+    |> NonEmptyString.create
+    |> Result.mapError WorkflowError.ValidationError
+    |> Result.bind convertToId
+    |> Result.bind (fun id ->
+        unvalidatedBody
+        |> validateBody<SetName>
+        |> Result.map (fun b -> (id, b))
+      )
+    |> Result.map (fun (id, body) ->
+        let mutable item = service.GetItem(id)
+        item.Name <- body.Name
         service.SetItem(id, item)
         item 
       )
@@ -127,5 +150,6 @@ module ToDoFSharpRopWorkflow =
     getAllItems = (doGetAllItems service >> toHttpResult)
     getItem = (doGetItem service >> toHttpResult)
     setIsDone = fun id setItem -> (doSetIsDone service id setItem |> toHttpResult)
+    setName = fun id setName -> (doSetName service id setName |> toHttpResult)
   }
   
